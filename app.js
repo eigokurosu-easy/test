@@ -58,6 +58,19 @@ function formatName(name) {
   return name.replace(/-/g, ' ');
 }
 
+async function fetchJaName(speciesUrl) {
+  try {
+    const res = await fetch(speciesUrl);
+    if (!res.ok) return null;
+    const data = await res.json();
+    const entry = data.names.find(n => n.language.name === 'ja') ||
+                  data.names.find(n => n.language.name === 'ja-Hrkt');
+    return entry ? entry.name : null;
+  } catch {
+    return null;
+  }
+}
+
 async function fetchPokemon(query) {
   const key = String(query).toLowerCase().trim();
   showLoading();
@@ -67,15 +80,16 @@ async function fetchPokemon(query) {
     const res = await fetch(`${API_BASE}${encodeURIComponent(key)}`);
     if (!res.ok) throw new Error('not found');
     const data = await res.json();
-    renderPokemon(data);
+    const jaName = await fetchJaName(data.species.url);
+    renderPokemon(data, jaName);
   } catch {
     showError(`「${query}」は見つかりませんでした`);
   }
 }
 
-function renderPokemon(data) {
+function renderPokemon(data, jaName) {
   const id = data.id;
-  const name = formatName(data.name);
+  const name = jaName || formatName(data.name);
 
   // 番号・名前
   elNumber.textContent = `#${String(id).padStart(3, '0')}`;
