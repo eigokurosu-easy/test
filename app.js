@@ -1,263 +1,164 @@
 'use strict';
 
-// ==============================
-// タブ切り替え
-// ==============================
-function switchTab(name) {
-  document.querySelectorAll('.tab-btn').forEach((btn, i) => {
-    btn.classList.toggle('active', ['alarm', 'stopwatch'][i] === name);
-  });
-  document.getElementById('tab-alarm').classList.toggle('hidden', name !== 'alarm');
-  document.getElementById('tab-stopwatch').classList.toggle('hidden', name !== 'stopwatch');
+const API_BASE = 'https://pokeapi.co/api/v2/pokemon/';
+const MAX_POKEMON = 1025;
+
+const STAT_LABELS = {
+  hp: 'HP',
+  attack: 'こうげき',
+  defense: 'ぼうぎょ',
+  'special-attack': 'とくこう',
+  'special-defense': 'とくぼう',
+  speed: 'すばやさ',
+};
+
+// 種族値の最大値 (255) に対するバー幅の割合
+const STAT_MAX = 255;
+
+// タイプに応じたバーカラー
+const STAT_COLORS = ['#cc3333', '#e87020', '#4488ee', '#8855dd', '#44aa44', '#ccaa00'];
+
+const elLoading = document.getElementById('loading');
+const elError   = document.getElementById('error');
+const elErrorMsg = document.getElementById('error-msg');
+const elView    = document.getElementById('pokemon-view');
+const elNumber  = document.getElementById('poke-number');
+const elName    = document.getElementById('poke-name');
+const elTypes   = document.getElementById('poke-types');
+const elImage   = document.getElementById('poke-image');
+const elHeight  = document.getElementById('poke-height');
+const elWeight  = document.getElementById('poke-weight');
+const elAbilities = document.getElementById('poke-abilities');
+const elStats   = document.getElementById('stats-list');
+const elSearchInput = document.getElementById('search-input');
+
+let lastQuery = null;
+
+function showLoading() {
+  elLoading.classList.remove('hidden');
+  elError.classList.add('hidden');
+  elView.classList.add('hidden');
 }
 
-// ==============================
-// アラーム
-// ==============================
-let alarms = JSON.parse(localStorage.getItem('alarms') || '[]');
-let firingAlarmId = null;
-let audioCtx = null;
-let alarmNodes = [];
-
-function updateClock() {
-  const now = new Date();
-  const hh = String(now.getHours()).padStart(2, '0');
-  const mm = String(now.getMinutes()).padStart(2, '0');
-  const ss = String(now.getSeconds()).padStart(2, '0');
-  document.getElementById('current-time').textContent = `${hh}:${mm}:${ss}`;
-
-  const days = ['日', '月', '火', '水', '木', '金', '土'];
-  document.getElementById('current-date').textContent =
-    `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日（${days[now.getDay()]}）`;
-
-  checkAlarms(now);
+function showError(msg) {
+  elLoading.classList.add('hidden');
+  elError.classList.remove('hidden');
+  elView.classList.add('hidden');
+  elErrorMsg.textContent = msg;
 }
 
-function checkAlarms(now) {
-  if (firingAlarmId !== null) return;
-  const hh = String(now.getHours()).padStart(2, '0');
-  const mm = String(now.getMinutes()).padStart(2, '0');
-  const currentTime = `${hh}:${mm}`;
+function showPokemon() {
+  elLoading.classList.add('hidden');
+  elError.classList.add('hidden');
+  elView.classList.remove('hidden');
+}
 
-  for (const alarm of alarms) {
-    if (alarm.active && alarm.time === currentTime && !alarm.firedAt) {
-      alarm.firedAt = currentTime;
-      triggerAlarm(alarm);
-      saveAlarms();
-      break;
-    }
-    if (alarm.firedAt && alarm.firedAt !== currentTime) {
-      alarm.firedAt = null;
-    }
+function formatName(name) {
+  // 英語名をカタカナ変換せずそのまま表示（APIは英語名を返すため）
+  return name.replace(/-/g, ' ');
+}
+
+async function fetchPokemon(query) {
+  const key = String(query).toLowerCase().trim();
+  showLoading();
+  lastQuery = key;
+
+  try {
+    const res = await fetch(`${API_BASE}${encodeURIComponent(key)}`);
+    if (!res.ok) throw new Error('not found');
+    const data = await res.json();
+    renderPokemon(data);
+  } catch {
+    showError(`「${query}」は見つかりませんでした`);
   }
 }
 
-function triggerAlarm(alarm) {
-  firingAlarmId = alarm.id;
-  playAlarmSound();
-  document.getElementById('modal-label').textContent = alarm.label || '';
-  document.getElementById('modal-time').textContent = alarm.time;
-  document.getElementById('alarm-modal').classList.remove('hidden');
-}
+function renderPokemon(data) {
+  const id = data.id;
+  const name = formatName(data.name);
 
-function stopAlarm() {
-  stopAlarmSound();
-  firingAlarmId = null;
-  document.getElementById('alarm-modal').classList.add('hidden');
-}
+  // 番号・名前
+  elNumber.textContent = `#${String(id).padStart(3, '0')}`;
+  elName.textContent = name;
 
-function snoozeAlarm() {
-  stopAlarmSound();
-  document.getElementById('alarm-modal').classList.add('hidden');
+  // タイプ
+  elTypes.innerHTML = '';
+  data.types.forEach(({ type }) => {
+    const badge = document.createElement('span');
+    badge.className = `type-badge type-${type.name}`;
+    badge.textContent = type.name;
+    elTypes.appendChild(badge);
+  });
 
-  const now = new Date();
-  now.setMinutes(now.getMinutes() + 5);
-  const hh = String(now.getHours()).padStart(2, '0');
-  const mm = String(now.getMinutes()).padStart(2, '0');
+  // 画像（公式アートワーク → フォールバックでfrontDefault）
+  const art = data.sprites?.other?.['official-artwork']?.front_default;
+  const fallback = data.sprites?.front_default;
+  const imgSrc = art || fallback || '';
+  elImage.src = imgSrc;
+  elImage.alt = name;
 
-  alarms.push({ id: Date.now(), time: `${hh}:${mm}`, label: 'スヌーズ', active: true, firedAt: null });
-  saveAlarms();
-  renderAlarms();
-  firingAlarmId = null;
-}
+  // 高さ・重さ
+  elHeight.textContent = `${(data.height / 10).toFixed(1)} m`;
+  elWeight.textContent = `${(data.weight / 10).toFixed(1)} kg`;
 
-function addAlarm() {
-  const timeInput = document.getElementById('alarm-time-input').value;
-  const labelInput = document.getElementById('alarm-label-input').value.trim();
-  if (!timeInput) { alert('時刻を選択してください'); return; }
+  // 特性
+  const abilities = data.abilities
+    .filter(a => !a.is_hidden)
+    .map(a => formatName(a.ability.name));
+  const hidden = data.abilities
+    .filter(a => a.is_hidden)
+    .map(a => formatName(a.ability.name));
+  const abilityText = abilities.join(' / ') + (hidden.length ? ` (隠: ${hidden.join(', ')})` : '');
+  elAbilities.textContent = abilityText;
 
-  alarms.push({ id: Date.now(), time: timeInput, label: labelInput, active: true, firedAt: null });
-  alarms.sort((a, b) => a.time.localeCompare(b.time));
-  saveAlarms();
-  renderAlarms();
-  document.getElementById('alarm-time-input').value = '';
-  document.getElementById('alarm-label-input').value = '';
-}
+  // ステータス
+  elStats.innerHTML = '';
+  data.stats.forEach(({ stat, base_stat }, i) => {
+    const label = STAT_LABELS[stat.name] || stat.name;
+    const pct = Math.round((base_stat / STAT_MAX) * 100);
+    const color = STAT_COLORS[i % STAT_COLORS.length];
 
-function deleteAlarm(id) {
-  alarms = alarms.filter(a => a.id !== id);
-  saveAlarms();
-  renderAlarms();
-}
-
-function toggleAlarm(id) {
-  const alarm = alarms.find(a => a.id === id);
-  if (alarm) { alarm.active = !alarm.active; alarm.firedAt = null; saveAlarms(); renderAlarms(); }
-}
-
-function renderAlarms() {
-  const list = document.getElementById('alarm-list');
-  const noMsg = document.getElementById('no-alarms-msg');
-  list.innerHTML = '';
-  if (alarms.length === 0) { noMsg.style.display = 'block'; return; }
-  noMsg.style.display = 'none';
-
-  for (const alarm of alarms) {
-    const li = document.createElement('li');
-    li.className = 'alarm-item' + (alarm.active ? '' : ' inactive');
-    li.innerHTML = `
-      <div class="alarm-item-left">
-        <div>
-          <div class="alarm-time">${alarm.time}</div>
-          ${alarm.label ? `<div class="alarm-label">${escapeHtml(alarm.label)}</div>` : ''}
-        </div>
-      </div>
-      <div class="alarm-item-right">
-        <label class="toggle">
-          <input type="checkbox" ${alarm.active ? 'checked' : ''} onchange="toggleAlarm(${alarm.id})">
-          <span class="slider"></span>
-        </label>
-        <button class="delete-btn" onclick="deleteAlarm(${alarm.id})" title="削除">✕</button>
+    const row = document.createElement('div');
+    row.className = 'stat-row';
+    row.innerHTML = `
+      <span class="stat-name">${label}</span>
+      <span class="stat-value">${base_stat}</span>
+      <div class="stat-bar-bg">
+        <div class="stat-bar" style="width:0%; background:${color};"></div>
       </div>`;
-    list.appendChild(li);
-  }
-}
+    elStats.appendChild(row);
 
-function escapeHtml(str) {
-  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
-
-function saveAlarms() { localStorage.setItem('alarms', JSON.stringify(alarms)); }
-
-function playAlarmSound() {
-  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  function beep() {
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc.connect(gain); gain.connect(audioCtx.destination);
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(880, audioCtx.currentTime);
-    gain.gain.setValueAtTime(0.6, audioCtx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.5);
-    osc.start(audioCtx.currentTime); osc.stop(audioCtx.currentTime + 0.5);
-    alarmNodes.push(osc);
-  }
-  beep();
-  const id = setInterval(beep, 800);
-  alarmNodes.push({ stop: () => clearInterval(id) });
-}
-
-function stopAlarmSound() {
-  if (audioCtx) {
-    alarmNodes.forEach(n => { try { n.stop(); } catch (_) {} });
-    alarmNodes = []; audioCtx.close(); audioCtx = null;
-  }
-}
-
-// ==============================
-// ストップウォッチ
-// ==============================
-let swRunning = false;
-let swStartTime = 0;
-let swElapsed = 0;
-let swRafId = null;
-let swLaps = [];
-let swLapStart = 0;
-
-function swFormat(ms) {
-  const totalCs = Math.floor(ms / 10);
-  const cs = totalCs % 100;
-  const totalSec = Math.floor(totalCs / 100);
-  const sec = totalSec % 60;
-  const min = Math.floor(totalSec / 60);
-  return `${String(min).padStart(2, '0')}:${String(sec).padStart(2, '0')}.${String(cs).padStart(2, '0')}`;
-}
-
-function swTick() {
-  const now = performance.now();
-  const current = swElapsed + (now - swStartTime);
-  document.getElementById('sw-display').textContent = swFormat(current);
-  swRafId = requestAnimationFrame(swTick);
-}
-
-function swStartStop() {
-  const btn = document.getElementById('sw-start-stop');
-  const lapBtn = document.getElementById('sw-lap');
-  const resetBtn = document.getElementById('sw-reset');
-
-  if (!swRunning) {
-    swStartTime = performance.now();
-    swRunning = true;
-    swRafId = requestAnimationFrame(swTick);
-    btn.textContent = 'ストップ';
-    btn.classList.replace('sw-btn-start', 'sw-btn-stop');
-    lapBtn.disabled = false;
-    resetBtn.disabled = false;
-  } else {
-    swElapsed += performance.now() - swStartTime;
-    swRunning = false;
-    cancelAnimationFrame(swRafId);
-    btn.textContent = 'スタート';
-    btn.classList.replace('sw-btn-stop', 'sw-btn-start');
-    lapBtn.disabled = true;
-  }
-}
-
-function swLap() {
-  const now = performance.now();
-  const total = swElapsed + (now - swStartTime);
-  const lapTime = total - swLapStart;
-  swLapStart = total;
-  swLaps.unshift({ lap: swLaps.length + 1, lapTime, total });
-  renderLaps();
-}
-
-function swReset() {
-  if (swRunning) {
-    cancelAnimationFrame(swRafId);
-    swRunning = false;
-  }
-  swElapsed = 0;
-  swLapStart = 0;
-  swLaps = [];
-  document.getElementById('sw-display').textContent = '00:00.00';
-  const btn = document.getElementById('sw-start-stop');
-  btn.textContent = 'スタート';
-  btn.classList.remove('sw-btn-stop');
-  btn.classList.add('sw-btn-start');
-  document.getElementById('sw-lap').disabled = true;
-  document.getElementById('sw-reset').disabled = true;
-  renderLaps();
-}
-
-function renderLaps() {
-  const list = document.getElementById('sw-laps');
-  const header = document.getElementById('sw-laps-header');
-  list.innerHTML = '';
-  if (swLaps.length === 0) { header.classList.add('hidden'); return; }
-  header.classList.remove('hidden');
-
-  swLaps.forEach(({ lap, lapTime, total }) => {
-    const li = document.createElement('li');
-    li.className = 'sw-lap-item';
-    li.innerHTML = `<span>Lap ${lap}</span><span>${swFormat(lapTime)}</span><span>${swFormat(total)}</span>`;
-    list.appendChild(li);
+    // アニメーション（次フレームで幅をセット）
+    requestAnimationFrame(() => {
+      row.querySelector('.stat-bar').style.width = `${pct}%`;
+    });
   });
+
+  showPokemon();
 }
 
-// ==============================
-// 初期化
-// ==============================
-renderAlarms();
-setInterval(updateClock, 1000);
-updateClock();
+function loadRandom() {
+  const id = Math.floor(Math.random() * MAX_POKEMON) + 1;
+  fetchPokemon(id);
+}
+
+function handleSearch() {
+  const q = elSearchInput.value.trim();
+  if (!q) return;
+  fetchPokemon(q);
+}
+
+// ボタン
+document.getElementById('btn-random').addEventListener('click', loadRandom);
+document.getElementById('search-btn').addEventListener('click', handleSearch);
+document.getElementById('btn-retry').addEventListener('click', () => {
+  if (lastQuery) fetchPokemon(lastQuery);
+  else loadRandom();
+});
+
+elSearchInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter') handleSearch();
+});
+
+// 初回はランダム表示
+loadRandom();

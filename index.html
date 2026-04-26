@@ -3,79 +3,76 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>アラーム＆ストップウォッチ</title>
+  <title>ポケモン図鑑</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="container">
-    <h1>⏰ タイマーアプリ</h1>
+  <header class="header">
+    <div class="header-inner">
+      <h1 class="logo">ポケモン図鑑</h1>
+      <div class="search-wrap">
+        <input type="text" id="search-input" class="search-input" placeholder="名前 or 番号で検索…" autocomplete="off" />
+        <button class="search-btn" id="search-btn">検索</button>
+      </div>
+    </div>
+  </header>
 
-    <!-- タブ -->
-    <div class="tabs">
-      <button class="tab-btn active" onclick="switchTab('alarm')">アラーム</button>
-      <button class="tab-btn" onclick="switchTab('stopwatch')">ストップウォッチ</button>
+  <main class="main">
+    <!-- ランダムボタン -->
+    <div class="random-bar">
+      <button class="btn-random" id="btn-random">ランダム表示</button>
     </div>
 
-    <!-- ===== アラームタブ ===== -->
-    <div id="tab-alarm" class="tab-content">
-      <!-- 現在時刻 -->
-      <div class="clock-section">
-        <div id="current-time" class="current-time">00:00:00</div>
-        <div id="current-date" class="current-date"></div>
+    <!-- カード -->
+    <div class="card" id="card">
+      <!-- ローディング -->
+      <div class="loading" id="loading">
+        <div class="pokeball-spin"></div>
+        <p>読み込み中…</p>
       </div>
 
-      <!-- アラーム設定 -->
-      <div class="alarm-set-section">
-        <h2>アラームを追加</h2>
-        <div class="alarm-input-row">
-          <input type="time" id="alarm-time-input" />
-          <input type="text" id="alarm-label-input" placeholder="ラベル（任意）" maxlength="30" />
-          <button id="add-alarm-btn" onclick="addAlarm()">追加</button>
+      <!-- エラー -->
+      <div class="error hidden" id="error">
+        <p id="error-msg">ポケモンが見つかりません</p>
+        <button class="btn-retry" id="btn-retry">もう一度</button>
+      </div>
+
+      <!-- ポケモン情報 -->
+      <div class="pokemon-view hidden" id="pokemon-view">
+        <div class="poke-header">
+          <span class="poke-number" id="poke-number">#001</span>
+          <h2 class="poke-name" id="poke-name">フシギダネ</h2>
+          <div class="poke-types" id="poke-types"></div>
+        </div>
+
+        <div class="poke-body">
+          <div class="poke-image-wrap">
+            <img class="poke-image" id="poke-image" src="" alt="" />
+          </div>
+
+          <div class="poke-info">
+            <div class="info-row">
+              <span class="info-label">高さ</span>
+              <span class="info-value" id="poke-height">—</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">重さ</span>
+              <span class="info-value" id="poke-weight">—</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">特性</span>
+              <span class="info-value" id="poke-abilities">—</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="stats-section">
+          <h3 class="stats-title">基本ステータス</h3>
+          <div class="stats-list" id="stats-list"></div>
         </div>
       </div>
-
-      <!-- アラーム一覧 -->
-      <div class="alarm-list-section">
-        <h2>アラーム一覧</h2>
-        <ul id="alarm-list"></ul>
-        <p id="no-alarms-msg" class="no-alarms">アラームが設定されていません</p>
-      </div>
     </div>
-
-    <!-- ===== ストップウォッチタブ ===== -->
-    <div id="tab-stopwatch" class="tab-content hidden">
-      <div class="sw-display-wrap">
-        <div id="sw-display" class="sw-display">00:00.00</div>
-      </div>
-
-      <div class="sw-buttons">
-        <button id="sw-start-stop" class="sw-btn sw-btn-start" onclick="swStartStop()">スタート</button>
-        <button id="sw-lap" class="sw-btn sw-btn-lap" onclick="swLap()" disabled>ラップ</button>
-        <button id="sw-reset" class="sw-btn sw-btn-reset" onclick="swReset()" disabled>リセット</button>
-      </div>
-
-      <div class="sw-laps-section">
-        <div class="sw-laps-header hidden" id="sw-laps-header">
-          <span>ラップ</span><span>ラップタイム</span><span>合計</span>
-        </div>
-        <ul id="sw-laps"></ul>
-      </div>
-    </div>
-  </div>
-
-  <!-- アラーム通知モーダル -->
-  <div id="alarm-modal" class="modal hidden">
-    <div class="modal-content">
-      <div class="modal-icon">⏰</div>
-      <h2>アラーム！</h2>
-      <p id="modal-label"></p>
-      <p id="modal-time" class="modal-time"></p>
-      <div class="modal-buttons">
-        <button class="btn-stop" onclick="stopAlarm()">停止</button>
-        <button class="btn-snooze" onclick="snoozeAlarm()">スヌーズ（5分）</button>
-      </div>
-    </div>
-  </div>
+  </main>
 
   <script src="app.js"></script>
 </body>
