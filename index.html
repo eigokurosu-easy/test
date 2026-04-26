@@ -3,34 +3,63 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>アラームアプリ</title>
+  <title>アラーム＆ストップウォッチ</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <div class="container">
-    <h1>アラームアプリ</h1>
+    <h1>⏰ タイマーアプリ</h1>
 
-    <!-- 現在時刻 -->
-    <div class="clock-section">
-      <div id="current-time" class="current-time">00:00:00</div>
-      <div id="current-date" class="current-date"></div>
+    <!-- タブ -->
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('alarm')">アラーム</button>
+      <button class="tab-btn" onclick="switchTab('stopwatch')">ストップウォッチ</button>
     </div>
 
-    <!-- アラーム設定 -->
-    <div class="alarm-set-section">
-      <h2>アラームを追加</h2>
-      <div class="alarm-input-row">
-        <input type="time" id="alarm-time-input" />
-        <input type="text" id="alarm-label-input" placeholder="ラベル（任意）" maxlength="30" />
-        <button id="add-alarm-btn" onclick="addAlarm()">追加</button>
+    <!-- ===== アラームタブ ===== -->
+    <div id="tab-alarm" class="tab-content">
+      <!-- 現在時刻 -->
+      <div class="clock-section">
+        <div id="current-time" class="current-time">00:00:00</div>
+        <div id="current-date" class="current-date"></div>
+      </div>
+
+      <!-- アラーム設定 -->
+      <div class="alarm-set-section">
+        <h2>アラームを追加</h2>
+        <div class="alarm-input-row">
+          <input type="time" id="alarm-time-input" />
+          <input type="text" id="alarm-label-input" placeholder="ラベル（任意）" maxlength="30" />
+          <button id="add-alarm-btn" onclick="addAlarm()">追加</button>
+        </div>
+      </div>
+
+      <!-- アラーム一覧 -->
+      <div class="alarm-list-section">
+        <h2>アラーム一覧</h2>
+        <ul id="alarm-list"></ul>
+        <p id="no-alarms-msg" class="no-alarms">アラームが設定されていません</p>
       </div>
     </div>
 
-    <!-- アラーム一覧 -->
-    <div class="alarm-list-section">
-      <h2>アラーム一覧</h2>
-      <ul id="alarm-list"></ul>
-      <p id="no-alarms-msg" class="no-alarms">アラームが設定されていません</p>
+    <!-- ===== ストップウォッチタブ ===== -->
+    <div id="tab-stopwatch" class="tab-content hidden">
+      <div class="sw-display-wrap">
+        <div id="sw-display" class="sw-display">00:00.00</div>
+      </div>
+
+      <div class="sw-buttons">
+        <button id="sw-start-stop" class="sw-btn sw-btn-start" onclick="swStartStop()">スタート</button>
+        <button id="sw-lap" class="sw-btn sw-btn-lap" onclick="swLap()" disabled>ラップ</button>
+        <button id="sw-reset" class="sw-btn sw-btn-reset" onclick="swReset()" disabled>リセット</button>
+      </div>
+
+      <div class="sw-laps-section">
+        <div class="sw-laps-header hidden" id="sw-laps-header">
+          <span>ラップ</span><span>ラップタイム</span><span>合計</span>
+        </div>
+        <ul id="sw-laps"></ul>
+      </div>
     </div>
   </div>
 

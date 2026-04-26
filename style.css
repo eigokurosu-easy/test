@@ -28,9 +28,41 @@ body {
 h1 {
   text-align: center;
   font-size: 2rem;
-  margin-bottom: 30px;
+  margin-bottom: 20px;
   color: #e94560;
   letter-spacing: 2px;
+}
+
+/* タブ */
+.tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 28px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 12px;
+  padding: 6px;
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #a0a0c0;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.tab-btn.active {
+  background: #e94560;
+  color: #fff;
+  font-weight: 600;
+}
+
+.tab-content.hidden {
+  display: none;
 }
 
 h2 {
@@ -331,3 +363,88 @@ h2 {
 .btn-snooze:hover {
   background: rgba(255, 255, 255, 0.2);
 }
+
+/* ==============================
+   ストップウォッチ
+   ============================== */
+.sw-display-wrap {
+  text-align: center;
+  padding: 30px 0 20px;
+}
+
+.sw-display {
+  font-size: 4.5rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 2px;
+  color: #ffffff;
+}
+
+.sw-buttons {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-bottom: 28px;
+}
+
+.sw-btn {
+  padding: 12px 26px;
+  border: none;
+  border-radius: 10px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.2s, opacity 0.2s;
+  font-weight: 600;
+}
+
+.sw-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.sw-btn-start  { background: #27ae60; color: #fff; }
+.sw-btn-start:hover:not(:disabled) { background: #219a52; }
+.sw-btn-stop   { background: #e94560; color: #fff; }
+.sw-btn-stop:hover:not(:disabled) { background: #c73652; }
+.sw-btn-lap    { background: rgba(255,255,255,0.12); color: #fff; border: 1px solid rgba(255,255,255,0.2); }
+.sw-btn-lap:hover:not(:disabled) { background: rgba(255,255,255,0.2); }
+.sw-btn-reset  { background: rgba(255,255,255,0.08); color: #a0a0c0; border: 1px solid rgba(255,255,255,0.15); }
+.sw-btn-reset:hover:not(:disabled) { background: rgba(255,255,255,0.15); }
+
+.sw-laps-section {
+  background: rgba(255,255,255,0.03);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.sw-laps-header {
+  display: grid;
+  grid-template-columns: 60px 1fr 1fr;
+  padding: 10px 16px;
+  font-size: 0.78rem;
+  color: #606080;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+.sw-laps-header.hidden { display: none; }
+
+#sw-laps { list-style: none; }
+
+.sw-lap-item {
+  display: grid;
+  grid-template-columns: 60px 1fr 1fr;
+  padding: 11px 16px;
+  font-size: 0.95rem;
+  font-variant-numeric: tabular-nums;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  color: #e0e0e0;
+}
+
+.sw-lap-item:first-child {
+  color: #e94560;
+  font-weight: 600;
+}
+
+.sw-lap-item:last-child { border-bottom: none; }
